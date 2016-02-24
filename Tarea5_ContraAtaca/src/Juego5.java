@@ -1,15 +1,20 @@
-import java.applet.Applet;
-import java.applet.AudioClip;
+import java.awt.Color;
+import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Image;
 import java.awt.Toolkit;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
+import java.io.BufferedReader;
+
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
+
 import java.net.URL;
 import java.util.LinkedList;
-import java.awt.Font;
-import java.awt.Color;
+import javax.swing.JFrame;
+import javax.swing.JOptionPane;
 
 /**
  * Tarea 3: Atrapando objetos
@@ -24,9 +29,12 @@ import java.awt.Color;
  * @version 1.0
  * @date 03/Febrero/2016
  */
-public class Juego5 extends Applet implements Runnable, MouseListener, 
+public class Juego5 extends JFrame implements Runnable, MouseListener, 
         MouseMotionListener {
 
+    private static final int iWIDTH = 800;      //Ancho del JFrame
+    private static final int iHEIGHT = 600;     //Alto del JFrame
+    
     private Base basJugador;        // Pertenece al JUGADOR
     private Base basObjeto;         // Será el OBJETOS que cae
     private Base basFallido;        // Aparece cuando un OBJETO cae hasta el fondo
@@ -43,9 +51,10 @@ public class Juego5 extends Applet implements Runnable, MouseListener,
     private Image imaImagenObjeto;  // Imagen del OBJETO que cae y ofrece puntos
     private Image imaImagenFallido; // Pertenece al objeto FALLIDO
     
-    private AudioClip sonFondo;     // Sonido de background
-    private AudioClip sonAtrapa;    // Sonido cuando el JUGADOR atrapa un punto
-    private AudioClip sonFallido;   // Sonido cuando un OBJETO llega al fondo
+    private SoundClip sonFondo;     // Sonido de background
+    private SoundClip sonAtrapa;    // Sonido cuando el JUGADOR atrapa un punto
+    private SoundClip sonFallido;   // Sonido cuando un OBJETO llega al fondo
+    
     
     private int iMouseX;            // Posición en el eje 'X' del click
     private int iMouseY;            // Posición en el eje 'X' del click
@@ -76,7 +85,7 @@ public class Juego5 extends Applet implements Runnable, MouseListener,
      * a usarse en el <code>Applet</code> y se definen funcionalidades.
      * 
      */
-    public void init() {
+    public Juego5() {
         // Creación del applet con un tamaño de 800, 500
         setSize(800,500);
              
@@ -105,16 +114,13 @@ public class Juego5 extends Applet implements Runnable, MouseListener,
         URL urlImagenFondo = this.getClass().getResource("Background.gif");
         imaImagenFondo = Toolkit.getDefaultToolkit().getImage(urlImagenFondo);
         
-        // Se asgina el sonido que se reproducirá cada vez que haya una colisión
-        URL urlSonidoColision = this.getClass().getResource("KeyTyping.wav");
-        sonAtrapa = getAudioClip(urlSonidoColision);
-        
+        // Sonido que se reproducirá cada vez que destruya un ENEMIGO
+        sonAtrapa = new SoundClip("KeyTyping.wav");
+        // Sonido que se reproducirá cada vez que el JUGADOR colisione con el
+        // ENEMIGO
+        sonFallido = new SoundClip("XPerror.wav");
         // Se asgina el sonido que se reproducirá de fondo en el juego
-        URL urlSonidoFondo = this.getClass().getResource("Starwars_PhantomMenace.wav");
-        sonFondo = getAudioClip(urlSonidoFondo);
-
-        URL urlSonidoFallido = this.getClass().getResource("XPerror.wav");
-        sonFallido = getAudioClip(urlSonidoFallido);
+        sonFondo = new SoundClip("Starwars_PhantomMenace.wav");      
         
         // Se crea el objeto de jugador
 	basJugador = new Base(0, 0,
@@ -164,6 +170,7 @@ public class Juego5 extends Applet implements Runnable, MouseListener,
         // La applet escuchará las siguientes interrupciones:
         addMouseListener(this); 
         addMouseMotionListener(this);
+        start();
     }
     
     /**
@@ -232,7 +239,7 @@ public class Juego5 extends Applet implements Runnable, MouseListener,
            se checa si hubo colisiones para desaparecer jugadores o corregir
            movimientos y se vuelve a pintar todo
         */ 
-        sonFondo.loop();
+        
         while (iVidas > 0) {
             actualiza();
             checaColision();
@@ -246,8 +253,6 @@ public class Juego5 extends Applet implements Runnable, MouseListener,
                         iexError.toString());
             }
 	}
-        sonFondo.stop();
-        
     }
 	
     /** 
@@ -348,9 +353,9 @@ public class Juego5 extends Applet implements Runnable, MouseListener,
     
     
      /**
-     * update
+     * paint
      * 
-     * Metodo sobrescrito de la clase <code>Applet</code>,
+     * Metodo sobrescrito de la clase <code>JFrame</code>,
      * heredado de la clase Container.<P>
      * En este metodo lo que hace es actualizar el contenedor y 
      * define cuando usar ahora el paint
@@ -358,8 +363,7 @@ public class Juego5 extends Applet implements Runnable, MouseListener,
      * @param graGrafico es el <code>objeto grafico</code> usado para dibujar.
      * 
      */
-    
-    public void update (Graphics graGrafico){
+    public void paint (Graphics graGrafico){
         // Inicializan el DoubleBuffer
         if (imaImagenApplet == null) {
                 imaImagenApplet = createImage (this.getSize().width, 
@@ -375,14 +379,14 @@ public class Juego5 extends Applet implements Runnable, MouseListener,
         
         // Actualiza el Foreground.
         graGraficaApplet.setColor (getForeground());
-        paint(graGraficaApplet);
+        paint1(graGraficaApplet);
 
         // Dibuja la imagen actualizada
         graGrafico.drawImage(imaImagenApplet, 0, 0, this);
     }
     
     /**
-     * paint
+     * paint1
      * 
      * Metodo sobrescrito de la clase <code>Applet</code>,
      * heredado de la clase Container.<P>
@@ -392,7 +396,7 @@ public class Juego5 extends Applet implements Runnable, MouseListener,
      * @param graDibujo es el objeto de <code>Graphics</code> usado para dibujar.
      * 
      */
-    public void paint(Graphics graDibujo) {
+    public void paint1(Graphics graDibujo) {
         // Desición que detecta si la imagen se cargo...
         if (basJugador != null && lklObjetos != null && basVida != null &&
                 imaImagenFondo != null) {
@@ -438,6 +442,41 @@ public class Juego5 extends Applet implements Runnable, MouseListener,
         graDibujo.setColor(Color.white);
         // Se pinta el string con los valores antes mencionados
         graDibujo.drawString(sPuntaje, 25, 75);
+    }
+    
+        /** 
+     * getWidth
+     * 
+     * Función que regresa el tamaño del ancho del JFrame.
+     * 
+     */
+    public int getWidth() {
+        return iWIDTH;
+    }
+    
+    /** 
+     * getHeight
+     * 
+     * Función que regresa el tamaño de la altura del JFrame.
+     * 
+     */
+    public int getHeight() {
+        return iHEIGHT;
+    }
+
+
+    /** 
+     * main
+     * 
+     * Función principal del juego.
+     * 
+     * @param args
+     */
+    public static void main(String[] args) {
+        Juego5 juego = new Juego5();
+        juego.setSize(iWIDTH, iHEIGHT);
+        juego.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        juego.setVisible(true);
     }
 
     @Override
