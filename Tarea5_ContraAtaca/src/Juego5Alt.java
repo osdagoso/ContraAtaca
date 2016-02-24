@@ -56,6 +56,8 @@ public class Juego5Alt extends JFrame implements Runnable, KeyListener {
     private int iFallidos;  // Contador para verificar cuantas veces el JUGADOR
                             // dejó caer un OBJETO hasta el límite inferior.
     
+    private int iDirBala;  // Indica la dirección de la bala a generar
+    
     private boolean bPressed;       // Determina si se presionó una tecla
     private boolean bColision;  // Determina si hubo una colisión con el JUGADOR
     private boolean bColVentana;// Determina si el OBJETO ya llegó al límite 
@@ -90,6 +92,8 @@ public class Juego5Alt extends JFrame implements Runnable, KeyListener {
         iVidas = 5;             // El jugador inicia con 5 vidas
         iPuntos = 0;            // Puntaje inicial del jugador
         iFallidos = 0;          // El JUGADOR aún no ha dejado caer un OBJETO
+        iDirBala = 0;           // La dirección de la siguiente BALA es la de
+                                // default (mover a inicializaBalas).
         bPressed = false;       // NO se está haciendo click al iniciar
         bColision = false;      // NO hay colisión al inicio del juego
         bPause = false;         // El juego NO inicia en pausa
@@ -558,21 +562,38 @@ public class Juego5Alt extends JFrame implements Runnable, KeyListener {
     @Override
     public void keyPressed(KeyEvent keyEvent) {
         if (iVidas > 0) {
-            // Si ninguna tecla usada en el juego está presionada entonces...
+            // Si ninguna tecla de movimiento está presionada entonces...
             if (!bPressed) {
-                // Se habilita el booleano como verdadero ya que se está presionando
-                // una tecla
                 bPressed = true;
                 // Se captura la tecla de "flecha a la izquierda" como una variable
-                // de valor 1 en "iDireccion"
+                // de valor 1 en "iDireccion" y se prende el booleano bPressed
                 if (keyEvent.getKeyCode() == keyEvent.VK_LEFT) {
                     iDireccion = 1;
+                    bPressed = true;
                 } // Se captura la tecla de "flecha a la derecha" como una variable
-                // de valor 2 en "iDireccion"
+                // de valor 2 en "iDireccion" y se prende el booleano bPressed
                 else if (keyEvent.getKeyCode() == keyEvent.VK_RIGHT) {
                     iDireccion = 2;
+                    bPressed = true;
                 }
             }
+            
+            // Las balas lanzadas mientras se presione la tecla A viajarán con
+            // un ángulo de 135 grados
+            if (keyEvent.getKeyCode() == keyEvent.VK_A) {
+                iDirBala = 1;
+            }
+            // Las balas lanzadas mientras se presione la tecla S viajarán con
+            // un ángulo de 45 grados
+            else if (keyEvent.getKeyCode() == keyEvent.VK_S) {
+                iDirBala = 2;
+            }
+            
+            // Si se presiona la barra espaciadora, crear una nueva bala
+            if (keyEvent.getKeyCode() == keyEvent.VK_SPACE) {
+                //TBA
+            }
+            
             // Al presionar la tecla P se alterna entre pausa y no pausa
             if (keyEvent.getKeyCode() == keyEvent.VK_P) {
                 if (bPause) {
@@ -597,8 +618,17 @@ public class Juego5Alt extends JFrame implements Runnable, KeyListener {
     }
 
     @Override
-    public void keyReleased(KeyEvent ke) {
-        bPressed = false;
+    public void keyReleased(KeyEvent keyEvent) {
+        while (iVidas > 0) {
+            if (keyEvent.getKeyCode() == keyEvent.VK_LEFT || keyEvent.getKeyCode()
+                    == keyEvent.VK_RIGHT) {
+                bPressed = false;
+            }
+            else if (keyEvent.getKeyCode() == keyEvent.VK_A || keyEvent.
+                    getKeyCode() == keyEvent.VK_S) {
+                iDirBala = 0;
+            }
+        }
     }
 }
 
