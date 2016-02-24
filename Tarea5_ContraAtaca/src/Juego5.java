@@ -320,7 +320,7 @@ public class Juego5 extends JFrame implements Runnable, KeyListener {
         // Desición para cuando el JUGADOR haya superado el límite de OBJETOS 
         // que se pueden "caer" (OBJETOS que alcanzan el límite inferior de la 
         // pantalla del applet)
-        if(iFallidos >= 10){
+        if(iFallidos >= 5){
             // Se resta una vida
             iVidas--;
             // Aumenta la velocidad en la que caen los OBJETOS debido a que se 
@@ -517,6 +517,7 @@ public class Juego5 extends JFrame implements Runnable, KeyListener {
 
     @Override
     public void keyReleased(KeyEvent ke) {
+        bPressed = false;
     }
 }
 
