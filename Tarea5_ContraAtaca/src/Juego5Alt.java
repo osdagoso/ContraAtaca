@@ -583,9 +583,13 @@ public class Juego5Alt extends JFrame implements Runnable, KeyListener {
             }
         }
         else {
+            // Si se desea continuar, destruir el JFrame actual y volver a
+            // llamar el método main
             if (keyEvent.getKeyCode() == keyEvent.VK_S) {
-                //
+                this.dispose();
+                main(new String[]{""});
             }
+            // Si no se desea continuar, simplemente destruir el JFrame
             else if (keyEvent.getKeyCode() == keyEvent.VK_N) {
                 this.dispose();
             }
