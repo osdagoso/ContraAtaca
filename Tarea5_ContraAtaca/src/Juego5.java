@@ -29,10 +29,10 @@ public class Juego5 extends JFrame implements Runnable, KeyListener {
     private static final int iHEIGHT = 600;     //Alto del JFrame
     
     private Base basJugador;        // Pertenece al JUGADOR
-    private Base basObjeto;         // Será el OBJETOS que cae
+    private Malo basObjeto;         // Será el OBJETOS que cae
     private Base basVida;           // Objeto que representa la vida del jugador
     
-    private LinkedList <Base> lklObjetos; // Coleccion de OBJETOS que caen
+    private LinkedList <Malo> lklObjetos; // Coleccion de OBJETOS que caen
     
     private Image imaImagenFondo;   // Imagen de fondo en el juego
     private Image imaImagenJugador; // Imagen del JUGADOR
@@ -46,6 +46,7 @@ public class Juego5 extends JFrame implements Runnable, KeyListener {
     private SoundClip sonFallido;   // Sonido cuando un OBJETO llega al fondo
     
     private int iDireccion;         // Indica la tecla de direccion de movimiento
+    private int iTipoMalo;              // Indica el tipo de ENEMIGO
     private int iVelocidad; // Indica la velocidad de movimiento de los OBJETOS
     private int iVidas;     // Indica la cantidad de vidas que tiene el JUGADOR
     private int iPuntos;            // Indica los puntos acumulados del JUGADOR
@@ -83,6 +84,7 @@ public class Juego5 extends JFrame implements Runnable, KeyListener {
         // La siguiente sección de código inicializa las variables globales que
         // se utilizarán en el juego :
         iVelocidad = 1;         // Velocidad de jugador por default (1 unidad)
+        iTipoMalo = 1;          // Inicializa a los malos como "Tipo 1"
         iVidas = 5;             // El jugador inicia con 5 vidas
         iPuntos = 0;            // Puntaje inicial del jugador
         iFallidos = 0;          // El JUGADOR aún no ha dejado caer un OBJETO
@@ -147,20 +149,21 @@ public class Juego5 extends JFrame implements Runnable, KeyListener {
         
         URL urlImagenAnt = this.getClass().getResource("Binario.gif");
         lklObjetos = new LinkedList(); // Se crean la lista de enemigos
+        
         // Se genera un número al azar de enemigos entre 7 y 10
         // Math random * 4 genera un número al hazar entre 0 y 4
         iRandomObj = (int)(Math.random() * 9) + 7;
         
         // Se crean los enemigos
         for (int iI = 0; iI < iRandomObj; iI++){
-            Base basObjeto = new Base(0, 0,
-                Toolkit.getDefaultToolkit().getImage(urlImagenAnt));
+            Malo basObjeto = new Malo(0, 0,
+                Toolkit.getDefaultToolkit().getImage(urlImagenAnt), iVelocidad, iTipoMalo);
             lklObjetos.add(basObjeto);
         }
         
         // Inicializa las posiciones de los ENEMIGOS que caerán desde la parte
         // superior de la ventana
-        for(Base basObjeto : lklObjetos){
+        for(Malo basObjeto : lklObjetos){
             reposicionaObjeto(basObjeto);
         }
         
@@ -306,10 +309,15 @@ public class Juego5 extends JFrame implements Runnable, KeyListener {
     
     public void actualizaEnemigo() {
         // Movimiento del OBJETO que "cae" al fondo del applet
-        for(Base basObjeto : lklObjetos){
+        /**for(Base basObjeto : lklObjetos){
             basObjeto.setY((int) (basObjeto.getY() + (1 * iVelocidad) + 
                     (int)(Math.random() * 3)));
         }
+        **/ 
+        
+        for(Malo basObjeto : lklObjetos) {
+            basObjeto.avanza();
+        }    
     }
     
     /**
@@ -345,7 +353,7 @@ public class Juego5 extends JFrame implements Runnable, KeyListener {
     public void colisionPantallaEnemigo() {
         // Se actualiza la posición del OBJETO en caso de que se halla salido de
         // el límite inferior de la pantalla del applet
-        for(Base basObjeto : lklObjetos){
+        for(Malo basObjeto : lklObjetos){
             if(basObjeto.getY() >= getHeight()){
                 // Se reposiciona el objeto hasta arriba
                 reposicionaObjeto(basObjeto);
@@ -363,7 +371,7 @@ public class Juego5 extends JFrame implements Runnable, KeyListener {
     public void colisionEnemigo() {
         // Se actualiza la posición del OBJETO en caso de que el JUGADOR lo haya
         // atrapado
-        for(Base basObjeto : lklObjetos){
+        for(Malo basObjeto : lklObjetos){
             if(basJugador.colisionaAbajo(basObjeto)){
                 // Se reposiciona el objeto hasta arriba
                 reposicionaObjeto(basObjeto);
@@ -437,7 +445,7 @@ public class Juego5 extends JFrame implements Runnable, KeyListener {
                 }
                 
                 // Dibuja la imagen de cada enemigo
-                for (Base basObjeto : lklObjetos){
+                for (Malo basObjeto : lklObjetos){
                     basObjeto.paint(graDibujo, this);
                 }
                 

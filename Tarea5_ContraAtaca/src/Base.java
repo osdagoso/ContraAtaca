@@ -4,9 +4,9 @@
  * Modela la definición de todos los objetos de tipo
  * <code>Base</code>
  *
- * @author Guillermo A. Mendoza Soni - A01550742
+ * @author Oscar González (A00816447) y Guillermo Mendoza (A01550742)
  * @version 1.0
- * @date 27/Enero/2016
+ * @date 24/Febrero/2016
  */
 import java.awt.Graphics;
 import java.awt.Image;
@@ -16,12 +16,12 @@ import javax.swing.ImageIcon;
 
 public class Base {
 
-    private int iX;                 //posicion en x.       
-    private int iY;                 //posicion en y.
-    private int iAncho;             //ancho del objeto
-    private int iAlto;              //largo del objeto
-    private Image imaImagen;        //imagen.
-    private ImageIcon imiImagen;    // imagen con medidas
+    protected int iX;                 //posicion en x.       
+    protected int iY;                 //posicion en y.
+    protected int iAncho;             //ancho del objeto
+    protected int iAlto;              //largo del objeto
+    protected Image imaImagen;        //imagen.
+    protected ImageIcon imiImagen;    // imagen con medidas
 
     /**
      * Base
