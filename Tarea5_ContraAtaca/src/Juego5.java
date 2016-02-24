@@ -14,13 +14,12 @@ import javax.swing.JOptionPane;
 /**
  * Tarea 5: Contra Ataca
  *
- * Juego donde un OBJETO cae de la parte superior de la pantalla del applet y el
- * JUGADOR debe de atraparlos para evitar perder vidas y ganar puntos: cada vez
- * que caigan 10 OBJETOS al suelo el jugador perderá una vida y 20 puntos menos,
- * cada vez que el JUGADOR atrape un OBJETO ganará 100 puntos; el JUGADOR se 
- * mueve haciendo click sobre él y haciendo "drag" a donde se vaya a dirigir.
+ * Juego donde un ENEMIGO avanza desde la parte superior de la pantalla, el 
+ * JUGADOR se defiende de los ENEMIGOS disparando balas que al momento de 
+ * colisinoar on el ENEMIGO este desaparece, si el ENEMIGO colisiona con el 
+ * JUGADOR se perderá un punto, y si colisiona 5 veces el JUGADOR pierde una vida
  *
- * @author Guillermo A. Mendoza Soni - A01550742
+ * @author Oscar González (A00816447) y Guillermo Mendoza (A01550742)
  * @version 1.0
  * @date 24/Febrero/2016
  */
@@ -31,12 +30,9 @@ public class Juego5 extends JFrame implements Runnable, KeyListener {
     
     private Base basJugador;        // Pertenece al JUGADOR
     private Base basObjeto;         // Será el OBJETOS que cae
-    private Base basFallido;        // Aparece cuando un OBJETO cae hasta el fondo
     private Base basVida;           // Objeto que representa la vida del jugador
     
     private LinkedList <Base> lklObjetos; // Coleccion de OBJETOS que caen
-    private LinkedList <Base> lklFallidos;// Coleccion de imagenes que aparecen
-                                          // cuando una imagen se cae al fondo
     
     private Image imaImagenFondo;   // Imagen de fondo en el juego
     private Image imaImagenJugador; // Imagen del JUGADOR
@@ -57,7 +53,7 @@ public class Juego5 extends JFrame implements Runnable, KeyListener {
     private int iFallidos;  // Contador para verificar cuantas veces el JUGADOR
                             // dejó caer un OBJETO hasta el límite inferior.
     
-    private boolean bPressed;       // Determina si hay un click con el mouse
+    private boolean bPressed;       // Determina si se presionó una tecla
     private boolean bColision;  // Determina si hubo una colisión con el JUGADOR
     private boolean bColVentana;// Determina si el OBJETO ya llegó al límite 
                                 // inferior de la pantalla del applet
@@ -271,52 +267,28 @@ public class Juego5 extends JFrame implements Runnable, KeyListener {
      * 
      */
     public void actualiza(){
-        // Detecta si no se ha hecho un click en el mouse, si se hizo
-        // un click y dragged sobre el jugador, se actualizan sus posiciones
+        actualizaJugador();
+        actualizaVidas();
+        actualizaEnemigo();
+    }
+    
+    public void actualizaJugador() {
+        // Detecta si se ha oprimido una tecla, si se opimió entonces se
+        // ve si la tecla pertence a una de las que mueve al personaje y se 
+        // actualiza su posición
         if(bPressed) {
+            // El jugador se mueve a la izquierda
             if (iDireccion == 1) {
                 basJugador.setX(basJugador.getX() - 3);
             }
+            // El jugador se mueve a la derecha
             else if (iDireccion == 2) {
                 basJugador.setX(basJugador.getX() + 3);
             }
         }
-           
-        // Movimiento del OBJETO que "cae" al fondo del applet
-        for(Base basObjeto : lklObjetos){
-            basObjeto.setY((int) (basObjeto.getY() + (1 * iVelocidad) + 
-                    (int)(Math.random() * 3)));
-        }
-        
-        // Se actualiza la posición del OBJETO en caso de que se halla salido de
-        // el límite inferior de la pantalla del applet
-        for(Base basObjeto : lklObjetos){
-            if(basObjeto.getY() >= getHeight()){
-                // Se reposiciona el objeto hasta arriba
-                reposicionaObjeto(basObjeto);
-                // Se aumenta el número de veces que el JUGADOR dejar caer un 
-                // objeto antes de perder una vida
-                iFallidos++;
-                // Se restan 20 puntos al jugador como penalización
-                iPuntos -= 20;
-                // Se reproduce un sonido de que el objeto se cayó
-                sonFallido.play();
-            }
-        }
-        
-        // Se actualiza la posición del OBJETO en caso de que el JUGADOR lo haya
-        // atrapado
-        for(Base basObjeto : lklObjetos){
-            if(basJugador.colisionaAbajo(basObjeto)){
-                // Se reposiciona el objeto hasta arriba
-                reposicionaObjeto(basObjeto);
-                // Se aumentan los puntos por atraparlo 
-                iPuntos += 100;
-                // Se reproduce un sonido de que el JUGADOR atrapó el OBJETO
-                sonAtrapa.play();
-            }
-        }
-  
+    }
+    
+    public void actualizaVidas() {
         // Desición para cuando el JUGADOR haya superado el límite de OBJETOS 
         // que se pueden "caer" (OBJETOS que alcanzan el límite inferior de la 
         // pantalla del applet)
@@ -331,7 +303,15 @@ public class Juego5 extends JFrame implements Runnable, KeyListener {
             iFallidos = 0;
         }
     }
-	
+    
+    public void actualizaEnemigo() {
+        // Movimiento del OBJETO que "cae" al fondo del applet
+        for(Base basObjeto : lklObjetos){
+            basObjeto.setY((int) (basObjeto.getY() + (1 * iVelocidad) + 
+                    (int)(Math.random() * 3)));
+        }
+    }
+    
     /**
      * checaColision
      * 
@@ -339,6 +319,12 @@ public class Juego5 extends JFrame implements Runnable, KeyListener {
      * 
      */
     public void checaColision(){
+        colisionPantallaJugador();
+        colisionPantallaEnemigo();
+        colisionEnemigo();
+    }
+    
+    public void colisionPantallaJugador() {
         // Detecta la colisión del jugador con alguno de los bordes de la 
         // pantalla del applet, cuando sucede una colisión, el objeto del jugador
         // se mantendrá al margen del applet.
@@ -354,11 +340,37 @@ public class Juego5 extends JFrame implements Runnable, KeyListener {
         else if (basJugador.getY() + basJugador.getAlto() >= getHeight()) {
             basJugador.setY(getHeight() - basJugador.getAlto());
         }
-        
-        // Desición que detecta cuando el jugador ha colsionado con el enemigo
+    }
+    
+    public void colisionPantallaEnemigo() {
+        // Se actualiza la posición del OBJETO en caso de que se halla salido de
+        // el límite inferior de la pantalla del applet
         for(Base basObjeto : lklObjetos){
-            if (basJugador.colisionaAbajo(basObjeto)) {
-                bColision = true;
+            if(basObjeto.getY() >= getHeight()){
+                // Se reposiciona el objeto hasta arriba
+                reposicionaObjeto(basObjeto);
+                // Se aumenta el número de veces que el JUGADOR dejar caer un 
+                // objeto antes de perder una vida
+                iFallidos++;
+                // Se restan 20 puntos al jugador como penalización
+                iPuntos -= 20;
+                // Se reproduce un sonido de que el objeto se cayó
+                sonFallido.play();
+            }
+        }
+    }
+    
+    public void colisionEnemigo() {
+        // Se actualiza la posición del OBJETO en caso de que el JUGADOR lo haya
+        // atrapado
+        for(Base basObjeto : lklObjetos){
+            if(basJugador.colisionaAbajo(basObjeto)){
+                // Se reposiciona el objeto hasta arriba
+                reposicionaObjeto(basObjeto);
+                // Se aumentan los puntos por atraparlo 
+                iPuntos += 10;
+                // Se reproduce un sonido de que el JUGADOR atrapó el OBJETO
+                sonAtrapa.play();
             }
         }
     }
