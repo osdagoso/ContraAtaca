@@ -6,18 +6,13 @@ import java.awt.Toolkit;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.io.BufferedReader;
-
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
-import java.awt.event.MouseMotionListener;
-
 import java.net.URL;
 import java.util.LinkedList;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 
 /**
- * Tarea 3: Atrapando objetos
+ * Tarea 5: Contra Ataca
  *
  * Juego donde un OBJETO cae de la parte superior de la pantalla del applet y el
  * JUGADOR debe de atraparlos para evitar perder vidas y ganar puntos: cada vez
@@ -27,10 +22,9 @@ import javax.swing.JOptionPane;
  *
  * @author Guillermo A. Mendoza Soni - A01550742
  * @version 1.0
- * @date 03/Febrero/2016
+ * @date 24/Febrero/2016
  */
-public class Juego5 extends JFrame implements Runnable, MouseListener, 
-        MouseMotionListener {
+public class Juego5 extends JFrame implements Runnable, KeyListener {
 
     private static final int iWIDTH = 800;      //Ancho del JFrame
     private static final int iHEIGHT = 600;     //Alto del JFrame
@@ -55,11 +49,7 @@ public class Juego5 extends JFrame implements Runnable, MouseListener,
     private SoundClip sonAtrapa;    // Sonido cuando el JUGADOR atrapa un punto
     private SoundClip sonFallido;   // Sonido cuando un OBJETO llega al fondo
     
-    
-    private int iMouseX;            // Posición en el eje 'X' del click
-    private int iMouseY;            // Posición en el eje 'X' del click
-    private int iOffsetX;           // Variable de ajuste de coordenada X
-    private int iOffsetY;           // Variable de ajuste de coordenada Y
+    private int iDireccion;         // Indica la tecla de direccion de movimiento
     private int iVelocidad; // Indica la velocidad de movimiento de los OBJETOS
     private int iVidas;     // Indica la cantidad de vidas que tiene el JUGADOR
     private int iPuntos;            // Indica los puntos acumulados del JUGADOR
@@ -78,17 +68,38 @@ public class Juego5 extends JFrame implements Runnable, MouseListener,
     private Graphics graGraficaApplet;  // Objeto grafico de la Imagen
           	
     /** 
-     * init
+     * Juego5()
      * 
-     * Metodo sobrescrito de la clase <code>Applet</code>.<P>
+     * Constructor de la clase <code>Juego5</code>.<P>
      * En este metodo se inizializan las variables o se crean los objetos
-     * a usarse en el <code>Applet</code> y se definen funcionalidades.
+     * a usarse en el <code>JFrame</code> y se definen funcionalidades.
      * 
      */
     public Juego5() {
-        // Creación del applet con un tamaño de 800, 500
-        setSize(800,500);
-             
+        // Creación del applet con un tamaño de 800, 600
+        setSize(iWIDTH,iHEIGHT);
+        inicializaImagenes();    
+        inicializaSonidos();
+        inicializaJugador();
+        inicializaEnemigos();
+        inicializaVidas();       
+        
+        // La siguiente sección de código inicializa las variables globales que
+        // se utilizarán en el juego :
+        iVelocidad = 1;         // Velocidad de jugador por default (1 unidad)
+        iVidas = 5;             // El jugador inicia con 5 vidas
+        iPuntos = 0;            // Puntaje inicial del jugador
+        iFallidos = 0;          // El JUGADOR aún no ha dejado caer un OBJETO
+        bPressed = false;       // NO se está haciendo click al iniciar
+        bColision = false;      // NO hay colisión al inicio del juego
+        
+        // La applet escuchará las siguientes interrupciones:
+        addKeyListener(this);
+        
+        start();
+    }
+    
+    public void inicializaImagenes() {
         // Se asigna la imagen del jugador contenida en la carpeta /src
 	URL urlImagenPrincipal = this.getClass().getResource("Programador1.gif");
         imaImagenJugador = Toolkit.getDefaultToolkit().getImage(urlImagenPrincipal);
@@ -113,19 +124,32 @@ public class Juego5 extends JFrame implements Runnable, MouseListener,
         // Se asigna la imagen de fondo para el juego
         URL urlImagenFondo = this.getClass().getResource("Background.gif");
         imaImagenFondo = Toolkit.getDefaultToolkit().getImage(urlImagenFondo);
-        
+    }
+    
+    public void inicializaSonidos() {
         // Sonido que se reproducirá cada vez que destruya un ENEMIGO
         sonAtrapa = new SoundClip("KeyTyping.wav");
         // Sonido que se reproducirá cada vez que el JUGADOR colisione con el
         // ENEMIGO
         sonFallido = new SoundClip("XPerror.wav");
         // Se asgina el sonido que se reproducirá de fondo en el juego
-        sonFondo = new SoundClip("Starwars_PhantomMenace.wav");      
-        
+        sonFondo = new SoundClip("Starwars_PhantomMenace.wav"); 
+    }
+    
+    public void inicializaJugador() {
         // Se crea el objeto de jugador
+        URL urlImagenPrincipal = this.getClass().getResource("Programador1.gif");
 	basJugador = new Base(0, 0,
-                Toolkit.getDefaultToolkit().getImage(urlImagenPrincipal));  
+                Toolkit.getDefaultToolkit().getImage(urlImagenPrincipal)); 
         
+        // Inicializa las coordenadas del JUGADOR dentro de los límites del 
+        // applet
+        reposicionaJugador(basJugador);
+    }
+    
+    public void inicializaEnemigos() {
+        
+        URL urlImagenAnt = this.getClass().getResource("Binario.gif");
         lklObjetos = new LinkedList(); // Se crean la lista de enemigos
         // Se genera un número al azar de enemigos entre 7 y 10
         // Math random * 4 genera un número al hazar entre 0 y 4
@@ -138,39 +162,24 @@ public class Juego5 extends JFrame implements Runnable, MouseListener,
             lklObjetos.add(basObjeto);
         }
         
-        // Se crea el objeto de vidas y se le asigna una imagen
-        URL urlImagenIcon = this.getClass().getResource("vida.gif");
-        basVida = new Base(0, 0,
-                Toolkit.getDefaultToolkit().getImage(urlImagenIcon));
-
-        // Inicializa las coordenadas de los objetos dentro de los límites del 
-        //  applet
-        reposicionaJugador(basJugador);
+        // Inicializa las posiciones de los ENEMIGOS que caerán desde la parte
+        // superior de la ventana
         for(Base basObjeto : lklObjetos){
             reposicionaObjeto(basObjeto);
         }
         
+    }
+    
+    public void inicializaVidas() {
+        // Se crea el objeto de vidas y se le asigna una imagen
+        URL urlImagenIcon = this.getClass().getResource("vida.gif");
+        basVida = new Base(0, 0,
+                Toolkit.getDefaultToolkit().getImage(urlImagenIcon));
+        
+        // Se indica la posición de las vidas en la pantalla del JFrame
         basVida.setX(getWidth() - basVida.getAncho());
         basVida.setY(5);
         
-        
-        // La siguiente sección de código inicializa las variables globales que
-        // se utilizarán en el juego :
-        iMouseX = 0;        
-        iMouseY = 0;
-        iOffsetX = 0;
-        iOffsetY = 0;
-        iVelocidad = 1;         // Velocidad de jugador por default (1 unidad)
-        iVidas = 5;             // El jugador inicia con 5 vidas
-        iPuntos = 0;            // Puntaje inicial del jugador
-        iFallidos = 0;          // El JUGADOR aún no ha dejado caer un OBJETO
-        bPressed = false;       // NO se está haciendo click al iniciar
-        bColision = false;      // NO hay colisión al inicio del juego
-        
-        // La applet escuchará las siguientes interrupciones:
-        addMouseListener(this); 
-        addMouseMotionListener(this);
-        start();
     }
     
     /**
@@ -264,9 +273,13 @@ public class Juego5 extends JFrame implements Runnable, MouseListener,
     public void actualiza(){
         // Detecta si no se ha hecho un click en el mouse, si se hizo
         // un click y dragged sobre el jugador, se actualizan sus posiciones
-        if(bPressed){
-            basJugador.setX(iMouseX - iOffsetX);
-            basJugador.setY(iMouseY - iOffsetY);
+        if(bPressed) {
+            if (iDireccion == 1) {
+                basJugador.setX(basJugador.getX() - 3);
+            }
+            else if (iDireccion == 2) {
+                basJugador.setX(basJugador.getX() + 3);
+            }
         }
            
         // Movimiento del OBJETO que "cae" al fondo del applet
@@ -349,8 +362,6 @@ public class Juego5 extends JFrame implements Runnable, MouseListener,
             }
         }
     }
-    
-    
     
      /**
      * paint
@@ -464,7 +475,6 @@ public class Juego5 extends JFrame implements Runnable, MouseListener,
         return iHEIGHT;
     }
 
-
     /** 
      * main
      * 
@@ -479,55 +489,34 @@ public class Juego5 extends JFrame implements Runnable, MouseListener,
         juego.setVisible(true);
     }
 
+   
     @Override
-    public void mouseClicked(MouseEvent mouEvent) {
-    }
-    // Cuando el usuario haga clicl con el mouse, se capturará las coordenadas
-    // donde se encuentre ubicado el mouse dentro del applet
-    @Override
-    public void mousePressed(MouseEvent mouEvent) {
+    public void keyTyped(KeyEvent ke) {
     }
 
     @Override
-    public void mouseReleased(MouseEvent mouEvent) {
-        // Se apaga la booleana del dragged para indicar que ya no se está 
-        // moviendo
-        bPressed = false;
-    }
-
-    @Override
-    public void mouseEntered(MouseEvent mouEvent) {  
-    }
-
-    @Override
-    public void mouseExited(MouseEvent mouEvent) { 
-    }
-    
-    // Si el usuario mueve el mouse mientras se ha hecho un click, entonces se
-    // hirán actualizando las coordenadas del objeto del jugador con las del
-    // movimiento del cursor, es decir, el usuario podrá hacer un drag de su 
-    // jugador dentro de la pantalla del applet
-    @Override
-    public void mouseDragged(MouseEvent mouEvent) {
-        // Activamos el booleano (TRUE) para indicar que el usuario ha hecho 
-        // click.
-        
-        // Si no estoy moviendome aún y le dieron click al jugador entonces
-        // se actualiza el offset
-        
-        if(!bPressed && basJugador.colisiona(mouEvent.getX(), mouEvent.getY())){
-            iOffsetX = mouEvent.getX() - basJugador.getX();
-            iOffsetX = mouEvent.getY() - basJugador.getY();
+    public void keyPressed(KeyEvent keyEvent) {
+        // Si ninguna tecla usada en el juego está presionada entonces...
+        if (!bPressed) {
+            // Se habilita el booleano como verdadero ya que se está presionando
+            // una tecla
             bPressed = true;
+            // Se captura la tecla de "flecha a la izquierda" como una variable
+            // de valor 1 en "iDireccion"
+            if (keyEvent.getKeyCode() == keyEvent.VK_LEFT) {
+                iDireccion = 1;
+            }
+            // Se captura la tecla de "flecha a la derecha" como una variable
+            // de valor 2 en "iDireccion"
+            else if (keyEvent.getKeyCode() == keyEvent.VK_RIGHT) {
+                iDireccion = 2;
+            }
+            
         }
-        // Se actualizan las posiciones del mouse en sus respectivas variables 
-        // de coordenadas 'X' y 'Y'.
-        iMouseX = mouEvent.getX();
-        iMouseY = mouEvent.getY();
     }
 
     @Override
-    public void mouseMoved(MouseEvent mouEvent) {
+    public void keyReleased(KeyEvent ke) {
     }
 }
 
