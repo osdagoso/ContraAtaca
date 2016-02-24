@@ -34,6 +34,8 @@ public class Juego5Alt extends JFrame implements Runnable, KeyListener {
     
     private LinkedList <Base> lklObjetos; // Coleccion de OBJETOS que caen
     
+    private LinkedList <Bala> lklBalas; // Colección de BALAS activas
+    
     private Image imaImagenFondo;   // Imagen de fondo en el juego
     private Image imaImagenJugador; // Imagen del JUGADOR
     private Image imaImagenJugador2;// Imagen del JUGADOR con la mitad de vidas    
@@ -56,7 +58,8 @@ public class Juego5Alt extends JFrame implements Runnable, KeyListener {
     private int iFallidos;  // Contador para verificar cuantas veces el JUGADOR
                             // dejó caer un OBJETO hasta el límite inferior.
     
-    private int iDirBala;  // Indica la dirección de la bala a generar
+    private char cDirBala;  // Indica la dirección de la bala a generar
+    private boolean bBala; // Indica si se desea lanzar una bala
     
     private boolean bPressed;       // Determina si se presionó una tecla
     private boolean bColision;  // Determina si hubo una colisión con el JUGADOR
@@ -84,7 +87,8 @@ public class Juego5Alt extends JFrame implements Runnable, KeyListener {
         inicializaSonidos();
         inicializaJugador();
         inicializaEnemigos();
-        inicializaVidas();       
+        inicializaVidas();
+        inicializaBalas();
         
         // La siguiente sección de código inicializa las variables globales que
         // se utilizarán en el juego :
@@ -92,8 +96,6 @@ public class Juego5Alt extends JFrame implements Runnable, KeyListener {
         iVidas = 5;             // El jugador inicia con 5 vidas
         iPuntos = 0;            // Puntaje inicial del jugador
         iFallidos = 0;          // El JUGADOR aún no ha dejado caer un OBJETO
-        iDirBala = 0;           // La dirección de la siguiente BALA es la de
-                                // default (mover a inicializaBalas).
         bPressed = false;       // NO se está haciendo click al iniciar
         bColision = false;      // NO hay colisión al inicio del juego
         bPause = false;         // El juego NO inicia en pausa
@@ -184,6 +186,13 @@ public class Juego5Alt extends JFrame implements Runnable, KeyListener {
         
     }
     
+    public void inicializaBalas() {
+        lklBalas = new LinkedList<Bala>(); // Se crea la lista de balas;
+        
+        cDirBala = 'C';  // La dirección de la siguiente BALA es la de default
+        bBala = false;   // NO se lanza una bala al inicio del juego    
+    }
+    
     public void inicializaVidas() {
         // Se crea el objeto de vidas y se le asigna una imagen
         URL urlImagenIcon = this.getClass().getResource("vida.gif");
@@ -192,8 +201,7 @@ public class Juego5Alt extends JFrame implements Runnable, KeyListener {
         
         // Se indica la posición de las vidas en la pantalla del JFrame
         basVida.setX(getWidth() - basVida.getAncho());
-        basVida.setY(5);
-        
+        basVida.setY(5);     
     }
     
     /**
@@ -290,6 +298,7 @@ public class Juego5Alt extends JFrame implements Runnable, KeyListener {
         actualizaJugador();
         actualizaVidas();
         actualizaEnemigo();
+        actualizaBalas();
     }
     
     public void actualizaJugador() {
@@ -329,6 +338,17 @@ public class Juego5Alt extends JFrame implements Runnable, KeyListener {
         for(Base basObjeto : lklObjetos){
             basObjeto.setY((int) (basObjeto.getY() + (1 * iVelocidad) + 
                     (int)(Math.random() * 3)));
+        }
+    }
+    
+    public void actualizaBalas() {
+        if (bBala) {
+            URL urlImagenAnt = this.getClass().getResource("Binario.gif");
+            Bala balNueva = new Bala(basJugador.getX() + basJugador.getAncho()/2
+                    , basJugador.getY() - 40, Toolkit.getDefaultToolkit()
+                    .getImage(urlImagenAnt), cDirBala);
+            lklBalas.add(balNueva);
+            bBala = false;
         }
     }
     
@@ -441,8 +461,8 @@ public class Juego5Alt extends JFrame implements Runnable, KeyListener {
      */
     public void paint1(Graphics graDibujo) {
         // Desición que detecta si la imagen se cargo...
-        if (basJugador != null && lklObjetos != null && basVida != null
-                && imaImagenFondo != null) {
+        if (basJugador != null && lklObjetos != null && lklBalas != null &&
+                basVida != null && imaImagenFondo != null) {
             if (iVidas > 0) {
                 if (!bPause) {
                     // ...Dibujar la imagen de fondo
@@ -454,6 +474,11 @@ public class Juego5Alt extends JFrame implements Runnable, KeyListener {
                     // Dibuja la imagen de cada enemigo
                     for (Base basObjeto : lklObjetos) {
                         basObjeto.paint(graDibujo, this);
+                    }
+                    
+                    // Dibuja la imagen de cada bala
+                    for (Bala balBala: lklBalas) {
+                        balBala.paint(graDibujo,this);
                     }
 
                     paintLetreros(graDibujo);
@@ -562,37 +587,9 @@ public class Juego5Alt extends JFrame implements Runnable, KeyListener {
     @Override
     public void keyPressed(KeyEvent keyEvent) {
         if (iVidas > 0) {
-            // Si ninguna tecla de movimiento está presionada entonces...
-            if (!bPressed) {
-                bPressed = true;
-                // Se captura la tecla de "flecha a la izquierda" como una variable
-                // de valor 1 en "iDireccion" y se prende el booleano bPressed
-                if (keyEvent.getKeyCode() == keyEvent.VK_LEFT) {
-                    iDireccion = 1;
-                    bPressed = true;
-                } // Se captura la tecla de "flecha a la derecha" como una variable
-                // de valor 2 en "iDireccion" y se prende el booleano bPressed
-                else if (keyEvent.getKeyCode() == keyEvent.VK_RIGHT) {
-                    iDireccion = 2;
-                    bPressed = true;
-                }
-            }
-            
-            // Las balas lanzadas mientras se presione la tecla A viajarán con
-            // un ángulo de 135 grados
-            if (keyEvent.getKeyCode() == keyEvent.VK_A) {
-                iDirBala = 1;
-            }
-            // Las balas lanzadas mientras se presione la tecla S viajarán con
-            // un ángulo de 45 grados
-            else if (keyEvent.getKeyCode() == keyEvent.VK_S) {
-                iDirBala = 2;
-            }
-            
-            // Si se presiona la barra espaciadora, crear una nueva bala
-            if (keyEvent.getKeyCode() == keyEvent.VK_SPACE) {
-                //TBA
-            }
+            // Verificar si se presiono alguna tecla de movimiento o de balas
+            keyMovementPressed(keyEvent);
+            keyBulletPressed(keyEvent);
             
             // Al presionar la tecla P se alterna entre pausa y no pausa
             if (keyEvent.getKeyCode() == keyEvent.VK_P) {
@@ -604,29 +601,68 @@ public class Juego5Alt extends JFrame implements Runnable, KeyListener {
             }
         }
         else {
-            // Si se desea continuar, destruir el JFrame actual y volver a
-            // llamar el método main
-            if (keyEvent.getKeyCode() == keyEvent.VK_S) {
-                this.dispose();
-                main(new String[]{""});
+            // Detectar el input del usuario en la pantalla de Game Over
+            keyGameOver(keyEvent);
+        }
+    }
+    
+    public void keyMovementPressed(KeyEvent keyEvent) {
+        // Si ninguna tecla de movimiento está presionada entonces...
+        if (!bPressed) {
+            // Se captura la tecla de "flecha a la izquierda" como una variable
+            // de valor 1 en "iDireccion" y se prende el booleano bPressed
+            if (keyEvent.getKeyCode() == keyEvent.VK_LEFT) {
+                iDireccion = 1;
+                bPressed = true;
+            } // Se captura la tecla de "flecha a la derecha" como una variable
+            // de valor 2 en "iDireccion" y se prende el booleano bPressed
+            else if (keyEvent.getKeyCode() == keyEvent.VK_RIGHT) {
+                iDireccion = 2;
+                bPressed = true;
             }
-            // Si no se desea continuar, simplemente destruir el JFrame
-            else if (keyEvent.getKeyCode() == keyEvent.VK_N) {
-                this.dispose();
-            }
+        }
+    }
+    
+    public void keyBulletPressed(KeyEvent keyEvent) {
+        // Las balas lanzadas mientras se presione la tecla A viajarán con
+        // un ángulo de 135 grados
+        if (keyEvent.getKeyCode() == keyEvent.VK_A) {
+            cDirBala = 'I';
+        }
+        // Las balas lanzadas mientras se presione la tecla S viajarán con
+        // un ángulo de 45 grados
+        else if (keyEvent.getKeyCode() == keyEvent.VK_S) {
+            cDirBala = 'D';
+        }
+        // Si se presiona la barra espaciadora, crear una nueva bala
+        if (keyEvent.getKeyCode() == keyEvent.VK_SPACE) {
+            bBala = true;
+        }
+    }
+    
+    public void keyGameOver(KeyEvent keyEvent) {
+        // Si se desea continuar, destruir el JFrame actual y volver a
+        // llamar el método main
+        if (keyEvent.getKeyCode() == keyEvent.VK_S) {
+            this.dispose();
+            main(new String[]{""});
+        }
+        // Si no se desea continuar, simplemente destruir el JFrame
+        else if (keyEvent.getKeyCode() == keyEvent.VK_N) {
+            this.dispose();
         }
     }
 
     @Override
     public void keyReleased(KeyEvent keyEvent) {
-        while (iVidas > 0) {
+        if (iVidas > 0) {
             if (keyEvent.getKeyCode() == keyEvent.VK_LEFT || keyEvent.getKeyCode()
                     == keyEvent.VK_RIGHT) {
                 bPressed = false;
             }
             else if (keyEvent.getKeyCode() == keyEvent.VK_A || keyEvent.
                     getKeyCode() == keyEvent.VK_S) {
-                iDirBala = 0;
+                cDirBala = 'C';
             }
         }
     }
