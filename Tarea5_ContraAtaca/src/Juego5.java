@@ -241,7 +241,7 @@ public class Juego5 extends JFrame implements Runnable, KeyListener {
         
         // Se indica la posición de las vidas en la pantalla del JFrame
         basVida.setX(getWidth() - basVida.getAncho());
-        basVida.setY(5);
+        basVida.setY(60);
     }
     
     /**
@@ -266,19 +266,19 @@ public class Juego5 extends JFrame implements Runnable, KeyListener {
      */    
     public void reposicionaMalo(Base basEjemplo) {
         // El objeto aparece de manera aleatoria a lo largo de la pantalla 
-        basEjemplo.setX((int)((Math.random() * getWidth()) + 0));
+        basEjemplo.setX((int)((Math.random() * getWidth())));
         // El objeto aparece fuera del área de la pantalla en las coordenadas
         // en Y, para que de el efecto de que estan cayendo al azar
         basEjemplo.setY((int)((Math.random() * (-300)) - basEjemplo.getAlto()));
         // En caso de que el OBJETO se salga del borde derecho de la pantalla 
         // del applet se corregirá su ubicación
         if(basEjemplo.getX() + basEjemplo.getAncho() > getWidth()) {
-            basEjemplo.setX(getWidth() - basEjemplo.getAncho());
+            basEjemplo.setX(getWidth() - basEjemplo.getAncho() - 1);
         }
         // En caso de que el OBJETO se salga del borde izquierdo de la pantalla 
         // del applet se corregirá su ubicación
         if(basEjemplo.getX() < 0)
-            basEjemplo.setX(0);
+            basEjemplo.setX(1);
     }
 	
     /** 
@@ -463,16 +463,16 @@ public class Juego5 extends JFrame implements Runnable, KeyListener {
         // pantalla del applet, cuando sucede una colisión, el objeto del jugador
         // se mantendrá al margen del applet.
         if (basJugador.getX() < 0) {
-            basJugador.setX(0);
+            basJugador.setX(1);
         }
         else if (basJugador.getX() + basJugador.getAncho() >= getWidth()) {
-            basJugador.setX(getWidth() - basJugador.getAncho());
+            basJugador.setX(getWidth() - basJugador.getAncho() - 1);
         }
         else if (basJugador.getY() < 0) {
-            basJugador.setY(0);
+            basJugador.setY(1);
         }
         else if (basJugador.getY() + basJugador.getAlto() >= getHeight()) {
-            basJugador.setY(getHeight() - basJugador.getAlto());
+            basJugador.setY(getHeight() - basJugador.getAlto() - 1);
         }
     }
     
@@ -624,7 +624,8 @@ public class Juego5 extends JFrame implements Runnable, KeyListener {
                     }
                     
                     // Dibuja la imagen de cada bala
-                    for (Bala balBala: lklBalas) {
+                    for (int iI = 0; iI < lklBalas.size(); iI++) {
+                        Bala balBala = (Bala)lklBalas.get(iI);
                         balBala.paint(graDibujo,this);
                     }
 
@@ -682,7 +683,7 @@ public class Juego5 extends JFrame implements Runnable, KeyListener {
         // Las letras serán de color blanco
         graDibujo.setColor(Color.white);
         // Se pinta el string con los valores antes mencionados
-        graDibujo.drawString(sPuntaje, 25, 100);
+        graDibujo.drawString(sPuntaje, 25, 125);
 
         // Dibuja las vidas del jugador
         for (int iK = 0; iK < iVidas; iK++) {
