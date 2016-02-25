@@ -13,8 +13,8 @@ public class Malo extends Base {
     
     public Malo(int iX, int iY, Image imaImagen, int iVel, int iTipo) {
         super(iX, iY, imaImagen);
-        this.iVelocidad = iVel;
-        this.iTipoMalo = iTipo;
+        iVelocidad = iVel;
+        iTipoMalo = iTipo;
     }
    
     public void avanza() {

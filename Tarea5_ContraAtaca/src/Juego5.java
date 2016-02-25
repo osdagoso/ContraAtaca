@@ -5,11 +5,9 @@ import java.awt.Image;
 import java.awt.Toolkit;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
-import java.io.BufferedReader;
 import java.net.URL;
 import java.util.LinkedList;
 import javax.swing.JFrame;
-import javax.swing.JOptionPane;
 
 /**
  * Tarea 5: Contra Ataca
@@ -29,17 +27,20 @@ public class Juego5 extends JFrame implements Runnable, KeyListener {
     private static final int iHEIGHT = 600;     //Alto del JFrame
     
     private Base basJugador;        // Pertenece al JUGADOR
-    private Malo basObjeto;         // Será el OBJETOS que cae
+    private Malo basMalo;         // Será el OBJETOS que cae
     private Base basVida;           // Objeto que representa la vida del jugador
     
-    private LinkedList <Malo> lklObjetos; // Coleccion de OBJETOS que caen
+    private LinkedList <Malo> lklMalos;   // Coleccion de OBJETOS que caen
+    private LinkedList <Bala> lklBalas;     // Colección de BALAS activas
     
     private Image imaImagenFondo;   // Imagen de fondo en el juego
     private Image imaImagenJugador; // Imagen del JUGADOR
     private Image imaImagenJugador2;// Imagen del JUGADOR con la mitad de vidas    
     private Image imaImagenJugador3;// Imagen del JUGADOR con pocas vidas
-    private Image imaImagenObjeto;  // Imagen del OBJETO que cae y ofrece puntos
-    private Image imaImagenFallido; // Pertenece al objeto FALLIDO
+    private Image imaImagenMalo;  // Imagen del OBJETO que cae y ofrece puntos
+    private Image imaImagenBala; // Pertenece al objeto FALLIDO
+    private Image imaImagenGameOver;// Imagen de Game Over
+    private Image imaImagenPausa;   // Imagen de pausa en el juego
     
     private SoundClip sonFondo;     // Sonido de background
     private SoundClip sonAtrapa;    // Sonido cuando el JUGADOR atrapa un punto
@@ -54,8 +55,12 @@ public class Juego5 extends JFrame implements Runnable, KeyListener {
     private int iFallidos;  // Contador para verificar cuantas veces el JUGADOR
                             // dejó caer un OBJETO hasta el límite inferior.
     
-    private boolean bPressed;       // Determina si se presionó una tecla
+    private char cDirBala;      // Indica la dirección de la bala a generar
+    
+    private boolean bBala;      // Indica si se desea lanzar una bala
+    private boolean bPressed;   // Determina si se presionó una tecla
     private boolean bColision;  // Determina si hubo una colisión con el JUGADOR
+    private boolean bPause;     // Determina si el juego está en pausa
     private boolean bColVentana;// Determina si el OBJETO ya llegó al límite 
                                 // inferior de la pantalla del applet
     
@@ -72,15 +77,7 @@ public class Juego5 extends JFrame implements Runnable, KeyListener {
      * a usarse en el <code>JFrame</code> y se definen funcionalidades.
      * 
      */
-    public Juego5() {
-        // Creación del applet con un tamaño de 800, 600
-        setSize(iWIDTH,iHEIGHT);
-        inicializaImagenes();    
-        inicializaSonidos();
-        inicializaJugador();
-        inicializaEnemigos();
-        inicializaVidas();       
-        
+    public Juego5() {       
         // La siguiente sección de código inicializa las variables globales que
         // se utilizarán en el juego :
         iVelocidad = 1;         // Velocidad de jugador por default (1 unidad)
@@ -90,6 +87,15 @@ public class Juego5 extends JFrame implements Runnable, KeyListener {
         iFallidos = 0;          // El JUGADOR aún no ha dejado caer un OBJETO
         bPressed = false;       // NO se está haciendo click al iniciar
         bColision = false;      // NO hay colisión al inicio del juego
+        
+        // Creación del applet con un tamaño de 800, 600
+        setSize(iWIDTH,iHEIGHT);
+        inicializaImagenes();    
+        inicializaSonidos();
+        inicializaJugador();
+        inicializaEnemigos();
+        inicializaBalas();
+        inicializaVidas();       
         
         // La applet escuchará las siguientes interrupciones:
         addKeyListener(this);
@@ -113,15 +119,23 @@ public class Juego5 extends JFrame implements Runnable, KeyListener {
         imaImagenJugador3 = Toolkit.getDefaultToolkit().getImage(urlImagenPricipAlt2);
         
         // Se asigna la imagen del objeto que cae, contenida en la carpeta /src
-        URL urlImagenAnt = this.getClass().getResource("Binario.gif");
-        imaImagenObjeto = Toolkit.getDefaultToolkit().getImage(urlImagenAnt);
+        URL urlImagenAnt = this.getClass().getResource("ErrorWindow.gif");
+        imaImagenMalo = Toolkit.getDefaultToolkit().getImage(urlImagenAnt);
 
-        URL urlImagenFallo = this.getClass().getResource("ErrorWindow.gif");
-        imaImagenFallido = Toolkit.getDefaultToolkit().getImage(urlImagenFallo);
+        URL urlImagenFallo = this.getClass().getResource("Binario.gif");
+        imaImagenBala = Toolkit.getDefaultToolkit().getImage(urlImagenFallo);
         
         // Se asigna la imagen de fondo para el juego
         URL urlImagenFondo = this.getClass().getResource("Background.gif");
         imaImagenFondo = Toolkit.getDefaultToolkit().getImage(urlImagenFondo);
+        
+        // Se asigna la imagen a desplegar cuando las vidas del jugador sean 0
+        URL urlImagenGameOver = this.getClass().getResource("game_over.png");
+        imaImagenGameOver = Toolkit.getDefaultToolkit().getImage(urlImagenGameOver);
+        
+        // Se asigna la imagen a desplegar cuando se pause el juego
+        URL urlImagenPausa = this.getClass().getResource("Pausa.png");
+        imaImagenPausa = Toolkit.getDefaultToolkit().getImage(urlImagenPausa);
     }
     
     public void inicializaSonidos() {
@@ -148,7 +162,7 @@ public class Juego5 extends JFrame implements Runnable, KeyListener {
     public void inicializaEnemigos() {
         
         URL urlImagenAnt = this.getClass().getResource("Binario.gif");
-        lklObjetos = new LinkedList(); // Se crean la lista de enemigos
+        lklMalos = new LinkedList<Malo>(); // Se crean la lista de enemigos
         
         // Se genera un número al azar de enemigos entre 7 y 10
         // Math random * 4 genera un número al hazar entre 0 y 4
@@ -156,17 +170,23 @@ public class Juego5 extends JFrame implements Runnable, KeyListener {
         
         // Se crean los enemigos
         for (int iI = 0; iI < iRandomObj; iI++){
-            Malo basObjeto = new Malo(0, 0,
-                Toolkit.getDefaultToolkit().getImage(urlImagenAnt), iVelocidad, iTipoMalo);
-            lklObjetos.add(basObjeto);
+            Malo basMalo = new Malo(0, 0, imaImagenMalo, iVelocidad, iTipoMalo);
+            lklMalos.add(basMalo);
         }
         
         // Inicializa las posiciones de los ENEMIGOS que caerán desde la parte
         // superior de la ventana
-        for(Malo basObjeto : lklObjetos){
-            reposicionaObjeto(basObjeto);
+        for(Malo basMalo : lklMalos){
+            reposicionaObjeto(basMalo);
         }
         
+    }
+    
+    public void inicializaBalas() {
+        lklBalas = new LinkedList<Bala>(); // Se crea la lista de balas;
+        
+        cDirBala = 'C';  // La dirección de la siguiente BALA es la de default
+        bBala = false;   // NO se lanza una bala al inicio del juego    
     }
     
     public void inicializaVidas() {
@@ -178,7 +198,6 @@ public class Juego5 extends JFrame implements Runnable, KeyListener {
         // Se indica la posición de las vidas en la pantalla del JFrame
         basVida.setX(getWidth() - basVida.getAncho());
         basVida.setY(5);
-        
     }
     
     /**
@@ -249,8 +268,10 @@ public class Juego5 extends JFrame implements Runnable, KeyListener {
         */ 
         
         while (iVidas > 0) {
-            actualiza();
-            checaColision();
+            if (!bPause) {
+                actualiza();
+                checaColision();
+            }
             repaint();
             //  Se manda a dormir (pausar) al thread del juego
             try	{
@@ -273,6 +294,7 @@ public class Juego5 extends JFrame implements Runnable, KeyListener {
         actualizaJugador();
         actualizaVidas();
         actualizaEnemigo();
+        actualizaBalas();
     }
     
     public void actualizaJugador() {
@@ -309,15 +331,20 @@ public class Juego5 extends JFrame implements Runnable, KeyListener {
     
     public void actualizaEnemigo() {
         // Movimiento del OBJETO que "cae" al fondo del applet
-        /**for(Base basObjeto : lklObjetos){
-            basObjeto.setY((int) (basObjeto.getY() + (1 * iVelocidad) + 
-                    (int)(Math.random() * 3)));
-        }
-        **/ 
-        
-        for(Malo basObjeto : lklObjetos) {
-            basObjeto.avanza();
+        for(Malo basMalo : lklMalos) {
+            basMalo.avanza();
         }    
+    }
+    
+    public void actualizaBalas() {
+        if (bBala) {
+            URL urlImagenAnt = this.getClass().getResource("Binario.gif");
+            Bala balNueva = new Bala(basJugador.getX() + basJugador.getAncho()/2
+                    , basJugador.getY() - 40, Toolkit.getDefaultToolkit()
+                    .getImage(urlImagenAnt), cDirBala);
+            lklBalas.add(balNueva);
+            bBala = false;
+        }
     }
     
     /**
@@ -353,10 +380,10 @@ public class Juego5 extends JFrame implements Runnable, KeyListener {
     public void colisionPantallaEnemigo() {
         // Se actualiza la posición del OBJETO en caso de que se halla salido de
         // el límite inferior de la pantalla del applet
-        for(Malo basObjeto : lklObjetos){
-            if(basObjeto.getY() >= getHeight()){
+        for(Malo basMalo : lklMalos){
+            if(basMalo.getY() >= getHeight()){
                 // Se reposiciona el objeto hasta arriba
-                reposicionaObjeto(basObjeto);
+                reposicionaObjeto(basMalo);
                 // Se aumenta el número de veces que el JUGADOR dejar caer un 
                 // objeto antes de perder una vida
                 iFallidos++;
@@ -371,10 +398,10 @@ public class Juego5 extends JFrame implements Runnable, KeyListener {
     public void colisionEnemigo() {
         // Se actualiza la posición del OBJETO en caso de que el JUGADOR lo haya
         // atrapado
-        for(Malo basObjeto : lklObjetos){
-            if(basJugador.colisionaAbajo(basObjeto)){
+        for(Malo basMalo : lklMalos){
+            if(basJugador.colisionaAbajo(basMalo)){
                 // Se reposiciona el objeto hasta arriba
-                reposicionaObjeto(basObjeto);
+                reposicionaObjeto(basMalo);
                 // Se aumentan los puntos por atraparlo 
                 iPuntos += 10;
                 // Se reproduce un sonido de que el JUGADOR atrapó el OBJETO
@@ -428,41 +455,71 @@ public class Juego5 extends JFrame implements Runnable, KeyListener {
      * 
      */
     public void paint1(Graphics graDibujo) {
-        // Desición que detecta si la imagen se cargo...
-        if (basJugador != null && lklObjetos != null && basVida != null &&
-                imaImagenFondo != null) {
-        	// ...Dibujar la imagen de fondo
-        	graDibujo.drawImage(imaImagenFondo, 0, 0, getWidth(),
+        if (basJugador != null && lklMalos != null && lklBalas != null &&
+                basVida != null && imaImagenFondo != null) {
+            if (iVidas > 0) {
+                if (!bPause) {
+                    // ...Dibujar la imagen de fondo
+                    graDibujo.drawImage(imaImagenFondo, 0, 0, getWidth(),
+                            getHeight(), this);
+
+                    paintPrincipal(graDibujo);
+
+                    // Dibuja la imagen de cada enemigo
+                    for (Malo basMalo : lklMalos) {
+                        basMalo.paint(graDibujo, this);
+                    }
+                    
+                    // Dibuja la imagen de cada bala
+                    for (Bala balBala: lklBalas) {
+                        balBala.paint(graDibujo,this);
+                    }
+
+                    paintLetreros(graDibujo);
+                } else {
+                    graDibujo.drawImage(imaImagenPausa, 0, 0, getWidth(),
+                            getHeight(), this);
+                }
+            } else {
+                graDibujo.drawImage(imaImagenGameOver, 0, 0, getWidth(),
                         getHeight(), this);
-                
-                // Desicion para cambiar la imagen si el jugador está en cierto
-                // rango de vidas
-                if(4 > iVidas && iVidas > 1){
-                    basJugador.setImagen(imaImagenJugador2);
-                }
-                if(1 >= iVidas){
-                    basJugador.setImagen(imaImagenJugador3);
-                }
-                
-                // Dibuja la imagen de cada enemigo
-                for (Malo basObjeto : lklObjetos){
-                    basObjeto.paint(graDibujo, this);
-                }
-                
-                // Dibuja la imagen del jugador en el applet
-                basJugador.paint(graDibujo, this);
-                
-                // Dibuja las vidas del jugador
-                for (int iK = 0; iK < iVidas; iK++) {
-                    basVida.paint(graDibujo, this);
-                    basVida.setX(basVida.getX() - basVida.getAncho() - 1);
-                }
-                basVida.setX(getWidth() - basVida.getAncho());
+            }
         } // En caso de que no haya cargado la imagen...
         else {
-                graDibujo.drawString("No se cargo la imagen..", 20, 20);
+            graDibujo.drawString("No se cargo la imagen..", 20, 20);
         }
-         
+    }
+    
+    /**
+     * paintPrincipal
+     * 
+     * En este método se dibuja el personaje principal.
+     * 
+     * @param graDibujo es el objeto de <code>Graphics</code> usado para dibujar.
+     * 
+     */
+    public void paintPrincipal(Graphics graDibujo) {
+        // Cambiar la imagen si el jugador está en cierto rango de vidas
+        if (iVidas < 4 && iVidas > 1) {
+            basJugador.setImagen(imaImagenJugador2);
+        }
+        if (iVidas <= 1) {
+            basJugador.setImagen(imaImagenJugador3);
+        }
+
+        // Dibuja la imagen del jugador en el applet
+        basJugador.paint(graDibujo, this);
+    }
+    
+    /**
+     * paintLetreros
+     * 
+     * En este metodo se dibujan los letreros de score y vidas.
+     * 
+     * @param graDibujo es el objeto de <code>Graphics</code> usado para dibujar.
+     * 
+     */
+    public void paintLetreros(Graphics graDibujo) {
         // Se crea un string que contendrá los puntos
         String sPuntaje = Integer.toString(iPuntos);
         // Se declara un font específico, tipo y tamaño de letra
@@ -473,9 +530,16 @@ public class Juego5 extends JFrame implements Runnable, KeyListener {
         graDibujo.setColor(Color.white);
         // Se pinta el string con los valores antes mencionados
         graDibujo.drawString(sPuntaje, 25, 75);
+
+        // Dibuja las vidas del jugador
+        for (int iK = 0; iK < iVidas; iK++) {
+            basVida.paint(graDibujo, this);
+            basVida.setX(basVida.getX() - basVida.getAncho() - 1);
+        }
+        basVida.setX(getWidth() - basVida.getAncho());
     }
     
-        /** 
+    /** 
      * getWidth
      * 
      * Función que regresa el tamaño del ancho del JFrame.
@@ -516,28 +580,85 @@ public class Juego5 extends JFrame implements Runnable, KeyListener {
 
     @Override
     public void keyPressed(KeyEvent keyEvent) {
-        // Si ninguna tecla usada en el juego está presionada entonces...
+        if (iVidas > 0) {
+            // Verificar si se presiono alguna tecla de movimiento o de balas
+            keyMovementPressed(keyEvent);
+            keyBulletPressed(keyEvent);
+            
+            // Al presionar la tecla P se alterna entre pausa y no pausa
+            if (keyEvent.getKeyCode() == keyEvent.VK_P) {
+                if (bPause) {
+                    bPause = false;
+                } else {
+                    bPause = true;
+                }
+            }
+        }
+        else {
+            // Detectar el input del usuario en la pantalla de Game Over
+            keyGameOver(keyEvent);
+        }
+    }
+    
+    public void keyMovementPressed(KeyEvent keyEvent) {
+        // Si ninguna tecla de movimiento está presionada entonces...
         if (!bPressed) {
-            // Se habilita el booleano como verdadero ya que se está presionando
-            // una tecla
-            bPressed = true;
             // Se captura la tecla de "flecha a la izquierda" como una variable
-            // de valor 1 en "iDireccion"
+            // de valor 1 en "iDireccion" y se prende el booleano bPressed
             if (keyEvent.getKeyCode() == keyEvent.VK_LEFT) {
                 iDireccion = 1;
-            }
-            // Se captura la tecla de "flecha a la derecha" como una variable
-            // de valor 2 en "iDireccion"
+                bPressed = true;
+            } // Se captura la tecla de "flecha a la derecha" como una variable
+            // de valor 2 en "iDireccion" y se prende el booleano bPressed
             else if (keyEvent.getKeyCode() == keyEvent.VK_RIGHT) {
                 iDireccion = 2;
+                bPressed = true;
             }
-            
         }
     }
 
+    public void keyBulletPressed(KeyEvent keyEvent) {
+        // Las balas lanzadas mientras se presione la tecla A viajarán con
+        // un ángulo de 135 grados
+        if (keyEvent.getKeyCode() == keyEvent.VK_A) {
+            cDirBala = 'I';
+        }
+        // Las balas lanzadas mientras se presione la tecla S viajarán con
+        // un ángulo de 45 grados
+        else if (keyEvent.getKeyCode() == keyEvent.VK_S) {
+            cDirBala = 'D';
+        }
+        // Si se presiona la barra espaciadora, crear una nueva bala
+        if (keyEvent.getKeyCode() == keyEvent.VK_SPACE) {
+            bBala = true;
+        }
+    }
+    
+    public void keyGameOver(KeyEvent keyEvent) {
+        // Si se desea continuar, destruir el JFrame actual y volver a
+        // llamar el método main
+        if (keyEvent.getKeyCode() == keyEvent.VK_S) {
+            this.dispose();
+            main(new String[]{""});
+        }
+        // Si no se desea continuar, simplemente destruir el JFrame
+        else if (keyEvent.getKeyCode() == keyEvent.VK_N) {
+            this.dispose();
+        }
+    }
+    
     @Override
-    public void keyReleased(KeyEvent ke) {
-        bPressed = false;
+    public void keyReleased(KeyEvent keyEvent) {
+        if (iVidas > 0) {
+            if (keyEvent.getKeyCode() == keyEvent.VK_LEFT || keyEvent.getKeyCode()
+                    == keyEvent.VK_RIGHT) {
+                bPressed = false;
+            }
+            else if (keyEvent.getKeyCode() == keyEvent.VK_A || keyEvent.
+                    getKeyCode() == keyEvent.VK_S) {
+                cDirBala = 'C';
+            }
+        }
     }
 }
 
