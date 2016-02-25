@@ -39,6 +39,7 @@ public class Juego5 extends JFrame implements Runnable, KeyListener {
     private Image imaImagenJugador3;// Imagen del JUGADOR con pocas vidas
     private Image imaImagenMalo;  // Imagen del OBJETO que cae y ofrece puntos
     private Image imaImagenBala; // Pertenece al objeto FALLIDO
+    private Image imaImagenVida;    // Imagen que representa vidas del JUGADOR
     private Image imaImagenGameOver;// Imagen de Game Over
     private Image imaImagenPausa;   // Imagen de pausa en el juego
     
@@ -61,8 +62,6 @@ public class Juego5 extends JFrame implements Runnable, KeyListener {
     private boolean bPressed;   // Determina si se presionó una tecla
     private boolean bColision;  // Determina si hubo una colisión con el JUGADOR
     private boolean bPause;     // Determina si el juego está en pausa
-    private boolean bColVentana;// Determina si el OBJETO ya llegó al límite 
-                                // inferior de la pantalla del applet
     
     /* objetos para manejar el buffer del Applet y 
        que la imagen no parpadee */
@@ -103,6 +102,12 @@ public class Juego5 extends JFrame implements Runnable, KeyListener {
         start();
     }
     
+    /**
+     * inicializaImagenes.
+     * 
+     * Metodo que inicializa a todas las variables de tipo "imagen" con una
+     * imagen de la carpeta \src
+     */
     public void inicializaImagenes() {
         // Se asigna la imagen del jugador contenida en la carpeta /src
 	URL urlImagenPrincipal = this.getClass().getResource("Programador1.gif");
@@ -122,8 +127,11 @@ public class Juego5 extends JFrame implements Runnable, KeyListener {
         URL urlImagenAnt = this.getClass().getResource("ErrorWindow.gif");
         imaImagenMalo = Toolkit.getDefaultToolkit().getImage(urlImagenAnt);
 
-        URL urlImagenFallo = this.getClass().getResource("Binario.gif");
-        imaImagenBala = Toolkit.getDefaultToolkit().getImage(urlImagenFallo);
+        URL urlImagenBala = this.getClass().getResource("Binario.gif");
+        imaImagenBala = Toolkit.getDefaultToolkit().getImage(urlImagenBala);
+        
+        URL urlImagenVida = this.getClass().getResource("vida.gif");
+        imaImagenVida = Toolkit.getDefaultToolkit().getImage(urlImagenVida);
         
         // Se asigna la imagen de fondo para el juego
         URL urlImagenFondo = this.getClass().getResource("Background.gif");
@@ -138,6 +146,12 @@ public class Juego5 extends JFrame implements Runnable, KeyListener {
         imaImagenPausa = Toolkit.getDefaultToolkit().getImage(urlImagenPausa);
     }
     
+    /**
+     * inicializaSonidos.
+     * 
+     * Metodo que inicializa a todas las variables de tipo "SoundClip" con un
+     * archivo de tipo .wav de la carpeta \src
+     */
     public void inicializaSonidos() {
         // Sonido que se reproducirá cada vez que destruya un ENEMIGO
         sonAtrapa = new SoundClip("KeyTyping.wav");
@@ -149,28 +163,47 @@ public class Juego5 extends JFrame implements Runnable, KeyListener {
         sonFondo.play();
     }
     
+    /**
+     * inicializaJugador.
+     * 
+     * Metodo que inicializa a la base del JUGADOR, se le asigna una imagen y en
+     * el constructor se llena con variables.
+     */
     public void inicializaJugador() {
         // Se crea el objeto de jugador
         URL urlImagenPrincipal = this.getClass().getResource("Programador1.gif");
-	basJugador = new Base(0, 0,
-                Toolkit.getDefaultToolkit().getImage(urlImagenPrincipal)); 
+	basJugador = new Base(0, 0, imaImagenJugador); 
         
         // Inicializa las coordenadas del JUGADOR dentro de los límites del 
         // applet
         reposicionaJugador(basJugador);
     }
     
+    /**
+     * inicializaEnemigos.
+     * 
+     * Metodo que inicializa a la base de los ENEMIGOS y se llena una lista
+     * con un número aleatorio de enemigos.
+     */
     public void inicializaEnemigos() {
         
-        URL urlImagenAnt = this.getClass().getResource("Binario.gif");
         lklMalos = new LinkedList<Malo>(); // Se crean la lista de enemigos
         
-        // Se genera un número al azar de enemigos entre 7 y 10
-        // Math random * 4 genera un número al hazar entre 0 y 4
-        iRandomObj = (int)(Math.random() * 9) + 7;
+        // Se genera un número al azar entre 10 y 15 del total de ENEMIGOS
+        iRandomObj = (int)(Math.random() * 6) + 10;
         
-        // Se crean los enemigos
-        for (int iI = 0; iI < iRandomObj; iI++){
+        // Se crean los enemigos de tipo 2:  partir del 10% del total de 
+        // enemigos que se pueden crear
+        iTipoMalo = 2;
+        for (int iI = 0; iI < ((int) iRandomObj * 0.10); iI++) {
+            Malo basMalo = new Malo(0, 0, imaImagenMalo, iVelocidad, iTipoMalo);
+            lklMalos.add(basMalo);
+        }
+            
+        // Se crean los enemigos de tipo 1: que son el resto de los enemigos que
+        // no fueron incluidos como enemigos de tipo
+        iTipoMalo = 1;
+        for (int iI = 0; iI < iRandomObj - ((int) iRandomObj * 0.10); iI++){
             Malo basMalo = new Malo(0, 0, imaImagenMalo, iVelocidad, iTipoMalo);
             lklMalos.add(basMalo);
         }
@@ -178,11 +211,16 @@ public class Juego5 extends JFrame implements Runnable, KeyListener {
         // Inicializa las posiciones de los ENEMIGOS que caerán desde la parte
         // superior de la ventana
         for(Malo basMalo : lklMalos){
-            reposicionaObjeto(basMalo);
+            reposicionaMalo(basMalo);
         }
         
     }
     
+    /**
+     * inicializaBalas.
+     * 
+     * Metodo que inicializa una lista de BALAS así como sus variables
+     */
     public void inicializaBalas() {
         lklBalas = new LinkedList<Bala>(); // Se crea la lista de balas;
         
@@ -190,11 +228,16 @@ public class Juego5 extends JFrame implements Runnable, KeyListener {
         bBala = false;   // NO se lanza una bala al inicio del juego    
     }
     
+    /**
+     * inicializaVidas.
+     * 
+     * Metodo que inicializa a la base y le carga una imagen que representará la
+     * vida del JUGADOR. También inicializa su posición en la parte superio 
+     * izquierda de la pantalla del JFrame
+     */
     public void inicializaVidas() {
-        // Se crea el objeto de vidas y se le asigna una imagen
-        URL urlImagenIcon = this.getClass().getResource("vida.gif");
-        basVida = new Base(0, 0,
-                Toolkit.getDefaultToolkit().getImage(urlImagenIcon));
+        // Se crea el objeto de vidas y se le asigna una imagen   
+        basVida = new Base(0, 0, imaImagenVida);
         
         // Se indica la posición de las vidas en la pantalla del JFrame
         basVida.setX(getWidth() - basVida.getAncho());
@@ -202,7 +245,7 @@ public class Juego5 extends JFrame implements Runnable, KeyListener {
     }
     
     /**
-     * reposicionaJugador
+     * reposicionaJugador.
      * 
      * Metodo que reposiciona solamente el jugador en la parte inferior del 
      * applet
@@ -215,13 +258,13 @@ public class Juego5 extends JFrame implements Runnable, KeyListener {
     }
 
     /**
-     * reposicionaObjeto
+     * reposicionaMalo.
      * 
      * Metodo que reposiciona el objeto de manera aleatoria en la parte superior
      * del applet
      * 
      */    
-    public void reposicionaObjeto(Base basEjemplo){
+    public void reposicionaMalo(Base basEjemplo) {
         // El objeto aparece de manera aleatoria a lo largo de la pantalla 
         basEjemplo.setX((int)((Math.random() * getWidth()) + 0));
         // El objeto aparece fuera del área de la pantalla en las coordenadas
@@ -229,7 +272,7 @@ public class Juego5 extends JFrame implements Runnable, KeyListener {
         basEjemplo.setY((int)((Math.random() * (-300)) - basEjemplo.getAlto()));
         // En caso de que el OBJETO se salga del borde derecho de la pantalla 
         // del applet se corregirá su ubicación
-        if(basEjemplo.getX() + basEjemplo.getAncho() > getWidth()){
+        if(basEjemplo.getX() + basEjemplo.getAncho() > getWidth()) {
             basEjemplo.setX(getWidth() - basEjemplo.getAncho());
         }
         // En caso de que el OBJETO se salga del borde izquierdo de la pantalla 
@@ -287,7 +330,7 @@ public class Juego5 extends JFrame implements Runnable, KeyListener {
     }
 	
     /** 
-     * actualiza
+     * actualiza.
      * 
      * Metodo que actualiza el estado de los objetos
      * 
@@ -299,6 +342,13 @@ public class Juego5 extends JFrame implements Runnable, KeyListener {
         actualizaBalas();
     }
     
+    /** 
+     * actualizaJugador.
+     * 
+     * Metodo que actualiza el movimiento del jugador cada vez que se oprime la
+     * tecla que controla la dirección de movimiento (solo izquierda o derecha)
+     * 
+     */
     public void actualizaJugador() {
         // Detecta si se ha oprimido una tecla, si se opimió entonces se
         // ve si la tecla pertence a una de las que mueve al personaje y se 
@@ -315,6 +365,14 @@ public class Juego5 extends JFrame implements Runnable, KeyListener {
         }
     }
     
+    /** 
+     * actualizaVidas.
+     * 
+     * Metodo que actualiza las vidas del jugador cada vez que colisione 5 veces
+     * con un objeto MALO. Además se aumentará la velocidad de movimiento de los
+     * malos cada vez que el jugador pierda una vida
+     * 
+     */
     public void actualizaVidas() {
         // Desición para cuando el JUGADOR haya superado el límite de OBJETOS 
         // que se pueden golpearlo
@@ -333,13 +391,37 @@ public class Juego5 extends JFrame implements Runnable, KeyListener {
         }
     }
     
+    /** 
+     * actualizaEnemigo.
+     * 
+     * Metodo que actualiza la posición de los ENEMIGOS haciendo uso de su 
+     * método " avanza(); "
+     * 
+     */
     public void actualizaEnemigo() {
-        // Movimiento del OBJETO que "cae" al fondo del applet
+        // Movimiento del ENEMIGO que "cae" al fondo del applet, se obtiene el
+        // tipo de ENEMIGO que es para determinar como avanza
         for(Malo basMalo : lklMalos) {
-            basMalo.avanza();
+            // Enemigo tipo 1: avanza de manera vertical desde arriba abajo
+            if(basMalo.getTipo() == 1) {
+                basMalo.avanza();
+            }
+            // Enemigo tipo 2: avanza de manera vertical deade arriba abajo pero
+            // sigue los movimientos del JUGADOR en el eje X
+            else if(basMalo.getTipo() == 2) {
+                basMalo.avanza(basJugador);
+            }
         }    
     }
     
+    /** 
+     * actualizaBalas.
+     * 
+     * Metodo que actualiza la posición de las balas y les da movimiento 
+     * dependiendo de que tecla se haya oprimido, este movimiento es captado
+     * dentro del constructor de BALA con una variable de tipo char.
+     * 
+     */
     public void actualizaBalas() {
         // Manda llamar el método avanza para cada bala activa
         for (Bala balBala : lklBalas) {
@@ -348,17 +430,15 @@ public class Juego5 extends JFrame implements Runnable, KeyListener {
         
         // Si la barra espaciadora está siendo presionada, crear una nueva bala
         if (bBala) {
-            URL urlImagenAnt = this.getClass().getResource("Binario.gif");
             Bala balNueva = new Bala(basJugador.getX() + basJugador.getAncho()/2
-                    , basJugador.getY() - 40, Toolkit.getDefaultToolkit()
-                    .getImage(urlImagenAnt), cDirBala);
+                    , basJugador.getY() - 40, imaImagenBala, cDirBala);
             lklBalas.add(balNueva);
             bBala = false;
         }
     }
     
     /**
-     * checaColision
+     * checaColision.
      * 
      * Metodo usado para checar la colision entre objetos
      * 
@@ -371,6 +451,13 @@ public class Juego5 extends JFrame implements Runnable, KeyListener {
         colisionEnemigoBala();
     }
     
+    /** 
+     * colisionPantallaJugador.
+     * 
+     * Metodo que actualiza la posición del JUGADOR cada vez que colisiona con 
+     * los bordes de la pantalla y así evitar que se salga.
+     * 
+     */
     public void colisionPantallaJugador() {
         // Detecta la colisión del jugador con alguno de los bordes de la 
         // pantalla del applet, cuando sucede una colisión, el objeto del jugador
@@ -389,24 +476,38 @@ public class Juego5 extends JFrame implements Runnable, KeyListener {
         }
     }
     
+    /** 
+     * colisionPantallaEnemigo.
+     * 
+     * Metodo que actualiza la posición del ENEMIGO cada vez que colisiona con 
+     * los bordes de la pantalla y así evitar que se salga.
+     * 
+     */
     public void colisionPantallaEnemigo() {
         // Se actualiza la posición del OBJETO en caso de que se halla salido de
         // el límite inferior de la pantalla del applet
         for(Malo basMalo : lklMalos){
             if(basMalo.getY() >= getHeight()){
                 // Se reposiciona el objeto hasta arriba
-                reposicionaObjeto(basMalo);
+                reposicionaMalo(basMalo);
             }
         }
     }
     
+    /** 
+     * colisionEnemigo.
+     * 
+     * Metodo que actualiza la posición del ENEMIGO cada vez que colisiona con 
+     * el JUGADOR.
+     * 
+     */
     public void colisionEnemigo() {
         // Se actualiza la posición del OBJETO en caso de que haya golpeado al
         // jugador
         for(Malo basMalo : lklMalos){
             if(basJugador.colisiona(basMalo)){
                 // Se reposiciona el objeto hasta arriba
-                reposicionaObjeto(basMalo);
+                reposicionaMalo(basMalo);
                 // Se aumentan los puntos por atraparlo 
                 iPuntos -= 1;
                 // Se aumenta el número de veces que el JUGADOR dejar caer un 
@@ -418,6 +519,13 @@ public class Juego5 extends JFrame implements Runnable, KeyListener {
         }
     }
     
+    /** 
+     * colisionPantallaBala.
+     * 
+     * Metodo que elimina un objeto BALA cada vez que colisiona con los bordes 
+     * de la pantalla.
+     * 
+     */
     public void colisionPantallaBala() {
         // Eliminar una bala si toca alguno de los bordes del JFrame
         for (int iI = 0; iI < lklBalas.size(); iI++) {
@@ -428,6 +536,14 @@ public class Juego5 extends JFrame implements Runnable, KeyListener {
         }
     }
     
+    /** 
+     * colisionEnemigoBala.
+     * 
+     * Metodo que actualiza los puntos del JUGADOR cada vez que un objeto base 
+     * BALA colisiona con un objeto base ENEMIGO. Tanto la BALA como el ENEMIGO
+     * desaparecen al momento de colisionar
+     * 
+     */
     public void colisionEnemigoBala() {
         // Eliminar una bala y reposicionar a un enemigo si llegan a colisionar
         for(Malo basMalo : lklMalos) {
@@ -435,7 +551,7 @@ public class Juego5 extends JFrame implements Runnable, KeyListener {
                 Bala balBala = (Bala)lklBalas.get(iI);
                 if (basMalo.colisiona(balBala)) {
                     // Se reposiciona al malo
-                    reposicionaObjeto(basMalo);
+                    reposicionaMalo(basMalo);
                     // Se aumentan los puntos por destruir al malo
                     iPuntos += 10;
                     // Se elimina la bala
@@ -566,7 +682,7 @@ public class Juego5 extends JFrame implements Runnable, KeyListener {
         // Las letras serán de color blanco
         graDibujo.setColor(Color.white);
         // Se pinta el string con los valores antes mencionados
-        graDibujo.drawString(sPuntaje, 25, 75);
+        graDibujo.drawString(sPuntaje, 25, 100);
 
         // Dibuja las vidas del jugador
         for (int iK = 0; iK < iVidas; iK++) {

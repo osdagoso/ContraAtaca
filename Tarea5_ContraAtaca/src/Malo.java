@@ -1,4 +1,9 @@
 /**
+ * Malo
+ *
+ * Clase hija que hereda de <code>Base</code> y representa a los enemigos del
+ * juego
+ *
  * @author Oscar González (A00816447) y Guillermo Mendoza (A01550742)
  * @version 1.0
  * @date 24/Febrero/2016
@@ -8,7 +13,7 @@ import java.awt.Image;
         
 public class Malo extends Base {
     
-    private int iVelocidad;
+    private int iVelocidad; 
     private int iTipoMalo;
     
     public Malo(int iX, int iY, Image imaImagen, int iVel, int iTipo) {
@@ -29,7 +34,7 @@ public class Malo extends Base {
         iY +=  2 * iVelocidad;
         
         // Si el objeto perseguido esta a la izquierda del actual: RESTAR X
-        if((iX + iAncho / 2) > 
+        if((iX + iAncho / 2) >= 
                     (basPerseguida.getX() + basPerseguida.getAncho() / 2)) {
             iX -= 2 * iVelocidad;
             
