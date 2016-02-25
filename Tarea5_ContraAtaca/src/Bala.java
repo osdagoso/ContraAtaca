@@ -20,4 +20,33 @@ public class Bala extends Base {
         super(iX, iY, imaImagen);
         cTipo = cType;
     }
+    
+    public char getTipo() {
+        return cTipo;
+    }
+    
+    public void setTipo(char cType) {
+        cTipo = cType;
+    }
+    
+    public void avanza() {
+        switch (cTipo) {
+            case 'C':
+                this.setY(this.getY() - 3);
+                break;
+            case 'I':
+                this.setX(this.getX() - (int)(Math.random() * 2) - 1);
+                this.setY(this.getY() - (int)(Math.random() * 2) - 1);
+                break;
+            case 'D':
+                this.setX(this.getX() + (int)(Math.random() * 2) + 1);
+                this.setY(this.getY() - (int)(Math.random() * 2) - 1);
+                break;
+        }
+    }
+    
+    public boolean colisionaBorde(int iWidth, int iHeight) {
+        return (this.getX() < 0 || this.getX() + this.getAncho() >= iWidth ||
+                this.getY() < 0);
+    }
 }

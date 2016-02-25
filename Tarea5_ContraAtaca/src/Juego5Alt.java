@@ -342,6 +342,10 @@ public class Juego5Alt extends JFrame implements Runnable, KeyListener {
     }
     
     public void actualizaBalas() {
+        for (Bala balBala : lklBalas) {
+            balBala.avanza();
+        }
+        
         if (bBala) {
             URL urlImagenAnt = this.getClass().getResource("Binario.gif");
             Bala balNueva = new Bala(basJugador.getX() + basJugador.getAncho()/2
@@ -362,6 +366,12 @@ public class Juego5Alt extends JFrame implements Runnable, KeyListener {
         colisionPantallaJugador();
         colisionPantallaEnemigo();
         colisionEnemigo();
+        for (int iI = 0; iI < lklBalas.size(); iI++) {
+            Bala balBala = (Bala)lklBalas.get(iI);
+            if (balBala.colisionaBorde(iWIDTH, iHEIGHT)) {
+                lklBalas.remove(balBala);
+            }
+        }
     }
     
     public void colisionPantallaJugador() {

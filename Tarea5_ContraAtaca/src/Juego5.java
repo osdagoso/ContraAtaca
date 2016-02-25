@@ -145,7 +145,8 @@ public class Juego5 extends JFrame implements Runnable, KeyListener {
         // ENEMIGO
         sonFallido = new SoundClip("XPerror.wav");
         // Se asgina el sonido que se reproducirá de fondo en el juego
-        sonFondo = new SoundClip("Starwars_PhantomMenace.wav"); 
+        sonFondo = new SoundClip("Starwars_PhantomMenace.wav");
+        sonFondo.play();
     }
     
     public void inicializaJugador() {
@@ -282,6 +283,7 @@ public class Juego5 extends JFrame implements Runnable, KeyListener {
                         iexError.toString());
             }
 	}
+        sonFondo.stop();
     }
 	
     /** 
@@ -315,14 +317,16 @@ public class Juego5 extends JFrame implements Runnable, KeyListener {
     
     public void actualizaVidas() {
         // Desición para cuando el JUGADOR haya superado el límite de OBJETOS 
-        // que se pueden "caer" (OBJETOS que alcanzan el límite inferior de la 
-        // pantalla del applet)
+        // que se pueden golpearlo
         if(iFallidos >= 5){
             // Se resta una vida
             iVidas--;
             // Aumenta la velocidad en la que caen los OBJETOS debido a que se 
             // perdió una vida
             iVelocidad++;
+            for (Malo basMala : lklMalos) {
+                basMala.setVelocidad(iVelocidad);
+            }
             // Se reinicia el número de veces que se ha fallado en atrapar un 
             // OBJETO
             iFallidos = 0;
@@ -337,6 +341,12 @@ public class Juego5 extends JFrame implements Runnable, KeyListener {
     }
     
     public void actualizaBalas() {
+        // Manda llamar el método avanza para cada bala activa
+        for (Bala balBala : lklBalas) {
+            balBala.avanza();
+        }
+        
+        // Si la barra espaciadora está siendo presionada, crear una nueva bala
         if (bBala) {
             URL urlImagenAnt = this.getClass().getResource("Binario.gif");
             Bala balNueva = new Bala(basJugador.getX() + basJugador.getAncho()/2
@@ -357,6 +367,8 @@ public class Juego5 extends JFrame implements Runnable, KeyListener {
         colisionPantallaJugador();
         colisionPantallaEnemigo();
         colisionEnemigo();
+        colisionPantallaBala();
+        colisionEnemigoBala();
     }
     
     public void colisionPantallaJugador() {
@@ -384,28 +396,53 @@ public class Juego5 extends JFrame implements Runnable, KeyListener {
             if(basMalo.getY() >= getHeight()){
                 // Se reposiciona el objeto hasta arriba
                 reposicionaObjeto(basMalo);
-                // Se aumenta el número de veces que el JUGADOR dejar caer un 
-                // objeto antes de perder una vida
-                iFallidos++;
-                // Se restan 20 puntos al jugador como penalización
-                iPuntos -= 20;
-                // Se reproduce un sonido de que el objeto se cayó
-                sonFallido.play();
             }
         }
     }
     
     public void colisionEnemigo() {
-        // Se actualiza la posición del OBJETO en caso de que el JUGADOR lo haya
-        // atrapado
+        // Se actualiza la posición del OBJETO en caso de que haya golpeado al
+        // jugador
         for(Malo basMalo : lklMalos){
-            if(basJugador.colisionaAbajo(basMalo)){
+            if(basJugador.colisiona(basMalo)){
                 // Se reposiciona el objeto hasta arriba
                 reposicionaObjeto(basMalo);
                 // Se aumentan los puntos por atraparlo 
-                iPuntos += 10;
-                // Se reproduce un sonido de que el JUGADOR atrapó el OBJETO
-                sonAtrapa.play();
+                iPuntos -= 1;
+                // Se aumenta el número de veces que el JUGADOR dejar caer un 
+                // objeto antes de perder una vida
+                iFallidos++;
+                // Se reproduce un sonido de que el objeto golpeó al JUGADOR
+                sonFallido.play();
+            }
+        }
+    }
+    
+    public void colisionPantallaBala() {
+        // Eliminar una bala si toca alguno de los bordes del JFrame
+        for (int iI = 0; iI < lklBalas.size(); iI++) {
+            Bala balBala = (Bala)lklBalas.get(iI);
+            if (balBala.colisionaBorde(iWIDTH, iHEIGHT)) {
+                lklBalas.remove(balBala);
+            }
+        }
+    }
+    
+    public void colisionEnemigoBala() {
+        // Eliminar una bala y reposicionar a un enemigo si llegan a colisionar
+        for(Malo basMalo : lklMalos) {
+            for (int iI = 0; iI < lklBalas.size(); iI++) {
+                Bala balBala = (Bala)lklBalas.get(iI);
+                if (basMalo.colisiona(balBala)) {
+                    // Se reposiciona al malo
+                    reposicionaObjeto(basMalo);
+                    // Se aumentan los puntos por destruir al malo
+                    iPuntos += 10;
+                    // Se elimina la bala
+                    lklBalas.remove(balBala);
+                    // Se reproduce un sonido de que el JUGADOR atrapó el OBJETO
+                    sonAtrapa.play();
+                }
             }
         }
     }
